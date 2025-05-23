@@ -1,0 +1,166 @@
+🧠 CalorEase – Módulo de Nutrición con Google Gemini
+Este módulo te permite consultar información nutricional sobre alimentos utilizando la API de Google Gemini. Está pensado para integrarse fácilmente a un proyecto existente en Node.js o para correrlo por separado en modo local.
+
+🏁 Cómo empezar (modo standalone)
+🔧 Requisitos previos
+Node.js v16 o superior
+
+Una API Key válida de Google Gemini
+
+npm para instalar dependencias
+
+(Opcional) WAMP o similar si lo usás junto a PHP
+
+🚀 Instalación rápida
+Cloná el proyecto (o copiá solo el módulo Gemini):
+
+bash
+
+git clone https://github.com/tu-usuario/tu-repo.git
+cd tu-repo
+Instalá las dependencias
+
+bash
+
+npm install
+npm install cors
+Configurá la clave de API
+
+Editá el archivo .env:
+
+env
+
+GEMINI_API_KEY=tu_clave_aqui
+Arrancá el servidor
+
+bash
+
+node server.js
+Deberías ver:
+
+arduino
+
+🔑 GEMINI_API_KEY loaded? true
+Servidor en http://localhost:3000
+Probalo en el navegador
+
+Abrí http://localhost:3000, ingresá un alimento (ej: "100g de arroz") y recibí un JSON con macros estimados.
+
+🔗 Integración a un proyecto Node.js más grande
+1. 🗂️ Organización de carpetas recomendada
+bash
+
+/tu-proyecto/
+│
+├── gemini-nutricion/       ← módulo Gemini
+│   ├── frontend.js
+│   ├── server.js
+│   ├── .env
+│   └── index.html
+├── app.js                  ← entrypoint principal de tu app
+└── package.json
+2. 🔌 Montar el módulo desde el servidor principal
+En app.js (tu servidor base), integrá el módulo:
+
+js
+
+const express = require('express');
+const path = require('path');
+const app = express();
+
+require('dotenv').config(); // carga .env principal
+require('dotenv').config({ path: './gemini-nutricion/.env' }); // carga el .env de Gemini
+
+const nutritionRouter = require('./gemini-nutricion/server');
+
+app.use('/nutrition', nutritionRouter);
+app.use('/nutrition', express.static(path.join(__dirname, 'gemini-nutricion')));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`App corriendo en http://localhost:${PORT}`));
+3. 🔄 Ajustes en gemini-nutricion/server.js
+Modificá el archivo para exportar un router en lugar de lanzar el servidor:
+
+js
+
+const express = require('express');
+const router = express.Router();
+const cors = require('cors');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
+router.use(cors());
+router.use(express.json());
+
+// Define la ruta POST
+router.post('/generate', async (req, res) => {
+  // lógica de generación con Gemini
+});
+
+module.exports = router;
+Esto hará que tu endpoint completo sea:
+➡️ POST /nutrition/generate
+
+4. 🌐 Servir frontend (opcional)
+Con la configuración anterior, podés visitar:
+
+bash
+
+http://localhost:<puerto>/nutrition
+Y el navegador cargará index.html, frontend.js, etc.
+
+5. 🔐 CORS (opcional pero recomendado)
+Para mayor seguridad, podés limitar el origen desde donde se permite el acceso a la API Gemini:
+
+js
+
+router.use(cors({
+  origin: ['http://localhost', 'http://calorease.com'],
+  methods: ['POST'],
+}));
+6. 📦 Manejo de dependencias
+Opción A: Un solo package.json (recomendado)
+Copiá las dependencias del submódulo Gemini a tu package.json principal
+
+Borrá el package.json del subdirectorio
+
+json
+
+"dependencies": {
+  "express": "^4.x",
+  "cors": "^2.x",
+  "node-fetch": "^3.x"
+}
+bash
+
+npm install
+Opción B: Dos package.json (uno por módulo)
+Ejecutá:
+
+bash
+
+cd gemini-nutricion
+npm install
+cd ..
+npm install
+Y asegurate de arrancar ambos con PM2, Docker o concurrently.
+
+✅ Resultado esperado
+Una vez integrado, tu proyecto puede hacer una petición como:
+
+js
+
+fetch('/nutrition/generate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ prompt: '50g de avena con leche' })
+})
+Y recibís:
+
+json
+
+{
+  "calorías": 195,
+  "carbohidratos": 33.8,
+  "grasas": 3.6,
+  "proteínas": 6.6
+}
